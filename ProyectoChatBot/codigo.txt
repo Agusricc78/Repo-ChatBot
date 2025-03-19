@@ -1,0 +1,38 @@
+metodo de recomendar pelis
+def recomendar_peliculas(self, usuario_id, n_recomendaciones=5):
+        if usuario_id not in self.matriz.index:
+            print(f"Usuario {usuario_id} no encontrado en la matriz.")
+            return []
+
+        # Verifica que haya más de un usuario para calcular similitudes
+        if len(self.matriz.index) == 1:
+            print("No hay suficientes usuarios para calcular recomendaciones.")
+            return []
+
+        usuario_vector = self.usuario_features.loc[usuario_id].values.reshape(1, -1)
+
+        # Cálculo de similitudes
+        similitud = self.usuario_features.dot(usuario_vector.T) / (
+            np.linalg.norm(self.usuario_features, axis=1) * np.linalg.norm(usuario_vector)
+        )
+
+        similitud_df = pd.DataFrame(similitud, index=self.matriz.index, columns=["similitud"])
+        similitud_df = similitud_df.sort_values(by="similitud", ascending=False)
+
+        print("Similitudes calculadas:", similitud_df.head())
+
+        peliculas_vistas = self.matriz.loc[usuario_id][self.matriz.loc[usuario_id] > 0].index.tolist()
+        print("Películas vistas por el usuario:", peliculas_vistas)
+
+        recomendaciones = []
+        for otro_usuario in similitud_df.index:
+            if otro_usuario != usuario_id:
+                peliculas_vistas_otros = self.matriz.loc[otro_usuario][self.matriz.loc[otro_usuario] > 0].index.tolist()
+                for pelicula in peliculas_vistas_otros:
+                    if pelicula not in peliculas_vistas:
+                        recomendaciones.append((pelicula, similitud_df.loc[otro_usuario]['similitud']))
+
+        recomendaciones = sorted(recomendaciones, key=lambda x: x[1], reverse=True)[:n_recomendaciones]
+        print("Recomendaciones generadas:", recomendaciones)
+
+        return recomendaciones  # Regresa la lista completa con ID de película y similitud
